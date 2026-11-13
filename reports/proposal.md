@@ -130,6 +130,7 @@ There is deliberately **no delete tool, no shell, no file system and no network 
 
 - **API:** OpenRouter (OpenAI-compatible chat completions with tool calling), with the OpenAI API as an alternative through the same adapter. The adapter is provider-neutral: base URL, key and model come from `.env` (`LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL`), never from the repository.
 - **Model:** a small, inexpensive tool-calling model as the default (candidates: GPT-4.1-mini / GPT-5-mini class, Gemini Flash class, open models via OpenRouter). In Week 11 I will measure 2–3 candidates on the same goals — tool-call correctness, latency and cost per run — and record the choice.
+- **Revision (Week 11):** the Gemini API (free tier, OpenAI-compatible endpoint) was added as a third provider for development; the configuration became one key per provider (`GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`) plus `LLM_PROVIDER` / `LLM_MODEL`. The free tier may use requests for training, which is acceptable only because all data here is fictional. Measured comparison: `reports/experiments/week-11-models.md`.
 - **Tests:** a scripted mock model (deterministic sequence of replies) so that workflow and guardrail tests run offline, without a key, in CI.
 
 ## Architecture

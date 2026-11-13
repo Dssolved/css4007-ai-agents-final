@@ -13,7 +13,8 @@
     "activity": "node scripts/analyze-commits.mjs",
     "grade": "node scripts/evaluate-progress.mjs",
     "typecheck": "tsc -p .",
-    "first-request": "node src/demo/first-request.ts"
+    "first-request": "node src/demo/first-request.ts",
+    "compare-models": "node src/experiments/compare-models.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
