@@ -14,7 +14,8 @@
     "grade": "node scripts/evaluate-progress.mjs",
     "typecheck": "tsc -p .",
     "first-request": "node src/demo/first-request.ts",
-    "compare-models": "node src/experiments/compare-models.ts"
+    "compare-models": "node src/experiments/compare-models.ts",
+    "generate": "node src/data/generate.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
