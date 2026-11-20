@@ -4,6 +4,7 @@
 // handling in Week 13).
 import { addDays, clock, clockOf, daysBetween, minutesFrom, weekday, type LogicalDate } from '../data/time.ts'
 import type { Dataset, Day, Task } from '../data/types.ts'
+import { rhythm } from '../analytics/rhythm.ts'
 import type { Tool } from './registry.ts'
 
 export interface ReadCtx {
@@ -216,4 +217,13 @@ const getBaseline: Tool<ReadCtx, { metric: string; days: number; until?: string 
   run: ({ metric, days, until }, { dataset }) => baseline(dataset, metric, days, until),
 }
 
-export const READ_TOOLS = [getDays, getSleep, getPlan, getBaseline] as Tool<ReadCtx>[]
+const getRhythm: Tool<ReadCtx, Record<string, never>> = {
+  name: 'get_rhythm',
+  description:
+    "A ready-made portrait of the person, computed from all the data: usual times (waking, falling asleep, meals, workouts), energy through the day with its peak and dip, how much a normal day holds (done task points), the last two weeks against the usual four weeks before them, sleep debt of the last seven nights, whether base habits are slipping, where moved tasks usually come from, the load of each of the next seven days, and the inbox. Start here for advice or planning, then look at details with the other tools.",
+  parameters: { type: 'object', properties: {}, additionalProperties: false },
+  permission: 'read',
+  run: (_args, { dataset }) => rhythm(dataset),
+}
+
+export const READ_TOOLS = [getRhythm, getDays, getSleep, getPlan, getBaseline] as Tool<ReadCtx>[]
