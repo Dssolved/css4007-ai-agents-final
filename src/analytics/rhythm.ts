@@ -40,6 +40,19 @@ function signals(days: Day[]) {
   }
 }
 
+export interface Capacity {
+  workday_points: number | null
+  weekend_points: number | null
+}
+
+/** Load of a day's open tasks against what a normal day holds (heavy: over a quarter more) */
+export function dayLoad(ds: Dataset, date: LogicalDate, capacity: Capacity) {
+  const points = ds.tasks.filter((x) => x.date === date && !x.doneAt && !x.droppedAt).reduce((s, x) => s + POINTS[x.size], 0)
+  const cap = (isWeekend(date) ? capacity.weekend_points : capacity.workday_points) ?? 4
+  const load: 'heavy' | 'light' | 'normal' = points > cap * 1.25 ? 'heavy' : points < cap * 0.5 ? 'light' : 'normal'
+  return { points, cap, load }
+}
+
 export interface RhythmOptions {
   /** Last day of the recent window (default: today) */
   until?: LogicalDate
@@ -112,13 +125,12 @@ export function rhythm(ds: Dataset, { until = ds.today, recentDays = 14, usualDa
   // The next seven days against what a normal day holds
   const next = Array.from({ length: 7 }, (_, i) => addDays(until, i + 1)).map((date) => {
     const tasks = ds.tasks.filter((x) => x.date === date && !x.doneAt && !x.droppedAt)
-    const points = tasks.reduce((s, x) => s + POINTS[x.size], 0)
-    const cap = (isWeekend(date) ? capacity.weekend_points : capacity.workday_points) ?? 4
+    const { points, load } = dayLoad(ds, date, capacity)
     return {
       date,
       weekday: weekday(date),
       points,
-      load: points > cap * 1.25 ? 'heavy' : points < cap * 0.5 ? 'light' : 'normal',
+      load,
       big_tasks: tasks.filter((x) => x.size === 'big').map((x) => x.title),
       fixed: tasks.filter((x) => x.time).map((x) => `${x.time} ${x.title}`),
       deadlines: ds.tasks.filter((x) => x.deadline === date && !x.doneAt && !x.droppedAt).map((x) => x.title),

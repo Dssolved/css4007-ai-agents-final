@@ -134,6 +134,14 @@ export interface Profile {
   rules: string[]
 }
 
+/** A reminder the person will get at a moment, optionally about a task */
+export interface Reminder {
+  id: string
+  text: string
+  at: LocalTime
+  taskId?: string
+}
+
 export interface Dataset {
   version: 1
   /** The fixed "today" of the dataset */
@@ -141,4 +149,6 @@ export interface Dataset {
   profile: Profile
   days: Day[]
   tasks: Task[]
+  /** Scheduled reminders; absent — none yet */
+  reminders?: Reminder[]
 }
