@@ -64,12 +64,14 @@ export const PROFILE: Profile = {
     { text: 'Finish the course without cramming', why: 'the last time I crammed for an exam I got sick', since: '2026-10-01' },
   ],
   rules: [
-    'Gym only in the evening, 18:00–20:00',
-    'At most one big task per day',
-    'No work tasks on weekends',
-    'Keep evenings after 22:00 free',
-    'No calls before 10:00',
-    'Course evenings (Tuesday, Thursday 19:00–21:00): nothing else after 18:00',
+    { text: 'Gym only in the evening, 18:00–20:00', form: { kind: 'only_between', titleHas: ['gym'], from: '18:00', to: '20:00' } },
+    { text: 'At most one big task per day', form: { kind: 'max_per_day', size: 'big', max: 1 } },
+    { text: 'No work tasks on weekends', form: { kind: 'sphere_not_on_weekend', sphere: 'work' } },
+    { text: 'Keep evenings after 22:00 free', form: { kind: 'free_after', time: '22:00' } },
+    { text: 'No calls before 10:00', form: { kind: 'not_before', titleHas: ['call', 'phone'], time: '10:00' } },
+    { text: 'Course evenings (Tuesday, Thursday 19:00–21:00): nothing else after 18:00', form: { kind: 'free_after', time: '18:00', weekdays: ['Tuesday', 'Thursday'] } },
+    // Too vague for code: the model is told, nothing checks it
+    { text: 'Leave room for one unplanned thing a day' },
   ],
 }
 

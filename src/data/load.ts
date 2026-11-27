@@ -27,6 +27,12 @@ export function validateDataset(raw: unknown): string[] {
   if (raw.version !== 1) err('version', 'expected 1')
   if (typeof raw.today !== 'string' || !isValidDate(raw.today)) err('today', 'expected YYYY-MM-DD')
   if (!isObj(raw.profile) || typeof raw.profile.name !== 'string') err('profile', 'expected an object with a name')
+  else if (!Array.isArray(raw.profile.rules)) err('profile.rules', 'expected a list')
+  else
+    raw.profile.rules.forEach((r: unknown, i: number) => {
+      if (!isObj(r) || typeof r.text !== 'string') err(`profile.rules[${i}]`, 'expected { text, form? }')
+      else if (r.form !== undefined && (!isObj(r.form) || typeof r.form.kind !== 'string')) err(`profile.rules[${i}].form`, 'expected an object with a kind')
+    })
   if (!Array.isArray(raw.days)) err('days', 'expected a list')
   if (!Array.isArray(raw.tasks)) err('tasks', 'expected a list')
   if (errors.length) return errors

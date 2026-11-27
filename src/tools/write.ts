@@ -6,8 +6,9 @@
 // Deliberately missing (tier "never"): delete a task, let it go, mark it done, edit past days.
 import { addDays, type LogicalDate } from '../data/time.ts'
 import type { TaskSize } from '../data/types.ts'
-import { commit, propose, type Change, type Session } from '../agent/journal.ts'
+import { commit, describe, preview, propose, type Change, type Session } from '../agent/journal.ts'
 import { tierOf } from '../agent/autonomy.ts'
+import { checkPlan } from '../agent/check.ts'
 import type { Tool } from './registry.ts'
 
 export interface WriteCtx {
@@ -18,20 +19,36 @@ const date = (description: string) => ({ type: 'string' as const, format: 'date'
 const HHMM = '^([01]\\d|2[0-3]):[0-5]\\d$'
 const notPast = (d: LogicalDate | undefined, today: LogicalDate, what: string) => (d && d < today ? `"${what}" is in the past; past days are not changed` : null)
 
-/** Decide the tier and act; this is what the model gets back */
+/**
+ * Check the plan as it would be, then decide the tier and act; this is what the model gets back.
+ * A hard finding rejects the change before anyone sees it; soft ones travel with the result.
+ */
 function act(s: Session, change: Change) {
+  const { dataset, touched } = preview(s, change)
+  const { hard, soft } = checkPlan(dataset, s.plan, touched)
+  const summary = describe(s.dataset, change)
+  if (hard.length)
+    return {
+      status: 'rejected',
+      summary,
+      broken: hard.map((f) => `${f.rule}: ${f.message}`),
+      note: 'Nothing was changed. Make a different proposal that keeps these rules — do not offer this one to the person.',
+    }
+  const warnings = soft.length ? { warnings: soft.map((f) => `${f.rule}: ${f.message}`) } : {}
   const tier = tierOf(s, change)
-  if (tier.tier === 'auto') {
+  if (tier.tier === 'auto' && !soft.length) {
     const e = commit(s, change, 'auto')
     return { status: 'done', summary: e.summary, journal_id: e.id, note: 'Done by you within your allowed limits; the person can undo it. Tell them in one line.' }
   }
-  const p = propose(s, change, tier.reasons)
+  const reasons = tier.tier === 'ask' ? tier.reasons : []
+  const p = propose(s, change, [...reasons, ...soft.map((f) => f.rule)])
   return {
     status: 'waiting_for_confirmation',
     summary: p.summary,
     proposal_id: p.id,
-    why: tier.reasons,
-    note: 'Not applied yet. The person will see all pending changes once as a checklist — do not ask about each one.',
+    why: p.reasons,
+    ...warnings,
+    note: `Not applied yet. The person will see all pending changes once as a checklist — do not ask about each one.${soft.length ? ' Mention the warnings honestly.' : ''}`,
   }
 }
 

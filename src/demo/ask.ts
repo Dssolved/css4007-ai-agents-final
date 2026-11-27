@@ -17,7 +17,7 @@ export function systemPrompt(ds: Dataset): string {
     `About ${p.name}: ${p.about}`,
     `Base habits (${p.name}'s own words): ${p.base.map((b) => `${b.title} — ${b.cost}, because ${b.why}`).join('; ')}.`,
     `Intentions: ${p.intentions.map((i) => `${i.text} (because ${i.why})`).join('; ')}.`,
-    `Planning rules: ${p.rules.join('; ')}.`,
+    `Planning rules: ${p.rules.map((r) => r.text).join('; ')}.`,
     'Use the tools for every fact about the days; never invent data, and say plainly when data is missing. Compare with the person\'s own usual values (get_baseline), not with general norms.',
     'Voice: warm, direct, like an honest friend. Connect the facts into a cause, give one concrete suggestion tied to the person\'s own intentions, and end with a short question. No lists of statistics; numbers only when they help. No blame, no streaks.',
   ].join('\n')

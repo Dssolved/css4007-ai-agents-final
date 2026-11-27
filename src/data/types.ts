@@ -130,9 +130,29 @@ export interface Profile {
   about: string
   base: BaseHabit[]
   intentions: Intention[]
-  /** Planning rules in the person's words ("no work after 21:00") */
-  rules: string[]
+  rules: Rule[]
 }
+
+/**
+ * A planning rule: always the person's own words (what the model reads), and — when the rule
+ * can be checked mechanically — a form for the code. A rule without a form is still followed by
+ * the model, the code just cannot catch a slip.
+ */
+export interface Rule {
+  text: string
+  form?: RuleForm
+}
+
+/** Times are "HH:MM"; title matches are case-insensitive whole words */
+export type RuleForm =
+  | { kind: 'max_per_day'; size: TaskSize; max: number }
+  | { kind: 'sphere_not_on_weekend'; sphere: string }
+  /** No timed task running past `time` (on these weekdays, or every day) */
+  | { kind: 'free_after'; time: string; weekdays?: string[] }
+  /** Timed tasks whose title has one of the words start no earlier than `time` */
+  | { kind: 'not_before'; titleHas: string[]; time: string }
+  /** Timed tasks whose title has one of the words fit inside from–to */
+  | { kind: 'only_between'; titleHas: string[]; from: string; to: string }
 
 /** A reminder the person will get at a moment, optionally about a task */
 export interface Reminder {

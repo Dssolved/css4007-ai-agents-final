@@ -34,6 +34,6 @@ export function tierOf(s: Session, c: Change): Tier {
   if (t.deadline && c.to > t.deadline) reasons.push(`after its deadline ${t.deadline}`)
   if (t.time) reasons.push(`it has a fixed time (${t.time})`)
   if ((AUTO_MOVE.peopleSpheres as readonly string[]).includes(t.sphere)) reasons.push('it involves other people')
-  if (dayLoad({ ...ds, tasks: [...ds.tasks, { ...t, date: c.to }].filter((x) => x !== t) }, c.to, s.capacity).load === 'heavy') reasons.push(`${c.to} would be heavy`)
+  if (dayLoad({ ...ds, tasks: [...ds.tasks, { ...t, date: c.to }].filter((x) => x !== t) }, c.to, s.plan.capacity).load === 'heavy') reasons.push(`${c.to} would be heavy`)
   return reasons.length ? { tier: 'ask', reasons } : { tier: 'auto' }
 }

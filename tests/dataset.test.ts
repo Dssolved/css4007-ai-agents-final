@@ -41,6 +41,11 @@ test('validation rejects broken records with a path to the problem', () => {
   assert.ok(errors.some((e) => e.startsWith('days[3].sleep.asleep')))
   assert.ok(errors.some((e) => e.startsWith('tasks[0].size')))
   assert.ok(errors.some((e) => e.includes('duplicate id')))
+
+  // rules as plain strings (the format before Week 13) are reported, not silently half-read
+  const old = structuredClone(dataset) as unknown as { profile: { rules: unknown[] } }
+  old.profile.rules = ['At most one big task per day']
+  assert.ok(validateDataset(old).some((e) => e.startsWith('profile.rules[0]')))
 })
 
 test('planted: late screens → later sleep and less energy next day', () => {

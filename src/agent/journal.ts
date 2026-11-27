@@ -7,7 +7,7 @@
 // at once (with undo); everything else waits in `pending` until the person ticks a checklist.
 import { clockOf, type LogicalDate } from '../data/time.ts'
 import type { Dataset, Reminder, Task } from '../data/types.ts'
-import { rhythm, type Capacity } from '../analytics/rhythm.ts'
+import { planContext, type PlanContext } from './check.ts'
 
 export type Change =
   | { kind: 'add_task'; task: Task }
@@ -37,8 +37,8 @@ export interface JournalEntry {
 
 export interface Session {
   dataset: Dataset
-  /** What a normal day holds, fixed at the start of the conversation */
-  capacity: Capacity
+  /** What a normal day holds, usual meals, sleep — fixed at the start of the conversation */
+  plan: PlanContext
   /** Untrusted text (notes) was read: from now on the agent changes nothing by itself */
   untrusted: boolean
   pending: Proposal[]
@@ -47,7 +47,7 @@ export interface Session {
 }
 
 export function startSession(dataset: Dataset): Session {
-  return { dataset, capacity: rhythm(dataset).capacity, untrusted: false, pending: [], journal: [], nextId: 1 }
+  return { dataset, plan: planContext(dataset), untrusted: false, pending: [], journal: [], nextId: 1 }
 }
 
 /** After reading untrusted text the "by itself" tier is off until the conversation ends */
@@ -116,6 +116,23 @@ function applyInverse(ds: Dataset, inv: Inverse) {
 }
 
 const touches = (c: Change) => (c.kind === 'add_task' ? c.task.id : c.kind === 'move_task' ? c.taskId : c.reminder.id)
+
+/**
+ * The plan as it would be with everything pending plus `change`, on a copy — what the plan check
+ * looks at. `touched`: tasks the agent changed in this conversation (applied, waiting, this one)
+ */
+export function preview(s: Session, change: Change): { dataset: Dataset; touched: Set<string> } {
+  const copy = structuredClone(s.dataset)
+  for (const p of s.pending)
+    try {
+      applyChange(copy, p.change)
+    } catch {
+      // a pending item that no longer fits is skipped at confirmation too
+    }
+  applyChange(copy, change)
+  const touched = new Set([...s.journal.filter((e) => !e.undone).map((e) => e.change), ...s.pending.map((p) => p.change), change].map(touches))
+  return { dataset: copy, touched }
+}
 
 /** Apply now and write to the journal */
 export function commit(s: Session, change: Change, how: JournalEntry['how']): JournalEntry {

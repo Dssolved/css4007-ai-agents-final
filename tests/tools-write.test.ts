@@ -50,14 +50,18 @@ test('every failed condition sends the move to the checklist, with the reason', 
   }
 })
 
-test('people and deadlines are always asked; a day that would get heavy too', () => {
+test('people are always asked, a move past the deadline is rejected; a day that would get heavy too', () => {
   const ctx = fresh()
   const ds = ctx.session.dataset
   // a small people-task with a day, and a small task due before the target day
   ds.tasks.push({ ...task(ctx, 't213'), id: 'x1', title: 'Call grandma', sphere: 'people', date: '2026-11-24' })
   ds.tasks.push({ ...task(ctx, 't213'), id: 'x2', title: 'Return the library book', sphere: 'admin', date: '2026-11-23', deadline: '2026-11-24' })
   assert.ok(result(call(ctx, 'move_task', { task_id: 'x1', to_date: '2026-11-25' })).why!.some((w) => /other people/.test(w)))
-  assert.ok(result(call(ctx, 'move_task', { task_id: 'x2', to_date: '2026-11-25' })).why!.some((w) => /deadline/.test(w)))
+  // past the deadline: not even offered (plan check, hard)
+  const late = result(call(ctx, 'move_task', { task_id: 'x2', to_date: '2026-11-25' })) as { status: string; broken?: string[] }
+  assert.equal(late.status, 'rejected')
+  assert.ok(late.broken!.some((b) => /deadline/.test(b)))
+  assert.equal(task(ctx, 'x2').date, '2026-11-23')
 
   // Friday already holds 4 points; two more normal tasks make it 8 + 1 > 6 × 1.25
   for (const id of ['h1', 'h2']) ds.tasks.push({ ...task(ctx, 't209'), id, date: '2026-11-27', deadline: undefined })
