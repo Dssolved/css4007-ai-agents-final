@@ -24,8 +24,8 @@ const notPast = (d: LogicalDate | undefined, today: LogicalDate, what: string) =
  * A hard finding rejects the change before anyone sees it; soft ones travel with the result.
  */
 function act(s: Session, change: Change) {
-  const { dataset, touched } = preview(s, change)
-  const { hard, soft } = checkPlan(dataset, s.plan, touched)
+  const { dataset, touched, added } = preview(s, change)
+  const { hard, soft } = checkPlan(dataset, s.plan, touched, added)
   const summary = describe(s.dataset, change)
   if (hard.length)
     return {

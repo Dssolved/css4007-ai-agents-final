@@ -88,12 +88,33 @@ function brokenForm(form: RuleForm, tasks: Task[], day: LogicalDate): { message:
 }
 
 /** Check the plan as it would be; only findings that involve a touched task are reported */
-export function checkPlan(ds: Dataset, pc: PlanContext, touched: Set<string>): CheckResult {
+/** Words of a title that carry meaning (3+ letters, lower case) */
+const words = (title: string) => new Set(title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3))
+/** Most of the shorter title's words are in the other one */
+export function sameThing(a: string, b: string) {
+  const [x, y] = [words(a), words(b)]
+  const [small, big] = x.size <= y.size ? [x, y] : [y, x]
+  if (!small.size) return false
+  return [...small].filter((w) => big.has(w)).length / small.size >= 0.75
+}
+
+/**
+ * Check the plan as it would be; only findings that involve a touched task are reported.
+ * `added`: tasks the agent created in this conversation (checked against copies of existing ones)
+ */
+export function checkPlan(ds: Dataset, pc: PlanContext, touched: Set<string>, added: Set<string> = new Set()): CheckResult {
   const hard: Finding[] = []
   const soft: Finding[] = []
   const mine = ds.tasks.filter((t) => touched.has(t.id) && open(t))
   const add = (to: Finding[], rule: string, message: string, ids: string[]) => {
     if (ids.some((id) => touched.has(id))) to.push({ rule, message, taskIds: ids })
+  }
+
+  // A new task that is an existing open one under another wording: plan that one instead.
+  // Repeating tasks are left out — another session of a habit is not a copy
+  for (const t of mine.filter((x) => added.has(x.id))) {
+    const twin = ds.tasks.find((o) => o.id !== t.id && !added.has(o.id) && open(o) && !o.repeatEvery && sameThing(o.title, t.title))
+    if (twin) add(hard, 'duplicate', `"${t.title}" looks like the existing task "${twin.title}" (id ${twin.id}, ${twin.date ?? 'inbox'}) — plan that one with move_task instead of adding a copy`, [t.id])
   }
 
   for (const t of mine) if (t.date && t.deadline && t.date > t.deadline) add(hard, 'deadline', `"${t.title}" on ${t.date} is after its deadline ${t.deadline}`, [t.id])
@@ -118,6 +139,17 @@ export function checkPlan(ds: Dataset, pc: PlanContext, touched: Set<string>): C
       if (!r.form) continue
       const broken = brokenForm(r.form, tasks, day)
       if (broken) add(hard, r.text, broken.message, broken.ids)
+    }
+
+    // A task without a time that may only happen in a window ("gym 18–20") on a day where
+    // another rule closes that window ("nothing after 18:00 on Tuesdays") cannot fit at all
+    for (const r of ds.profile.rules) {
+      if (r.form?.kind !== 'only_between') continue
+      const { titleHas, from, to } = r.form
+      const closer = ds.profile.rules.find((c) => c.form?.kind === 'free_after' && (!c.form.weekdays || c.form.weekdays.includes(weekday(day))) && mins(c.form.time) <= mins(from))
+      if (!closer) continue
+      const n = tasks.filter((t) => !t.time && has(t, titleHas))
+      if (n.length) add(hard, r.text, `${n.map((t) => `"${t.title}"`).join(', ')} can only be ${from}–${to}, and on ${weekday(day)} ${day} "${closer.text}" closes that window`, n.map((t) => t.id))
     }
 
     const load = dayLoad(ds, day, pc.capacity)

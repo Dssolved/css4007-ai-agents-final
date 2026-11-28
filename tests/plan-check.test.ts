@@ -87,3 +87,19 @@ test('soft findings pass with warnings: big task after a short night, late eveni
   const over = add(ctx, { title: 'Fix the shelf', date: '2026-11-27' })
   assert.ok(over.warnings!.some((w) => /^overload: 2026-11-27 holds 9 points/.test(w)), JSON.stringify(over))
 })
+
+test('a new task that copies an open one is rejected with the id to plan instead (live run 28.11)', () => {
+  // all three are in Mira's inbox already; the live model added them anew
+  rejectedBy(add(fresh(), { title: 'Buy a birthday gift for Sam', date: '2026-11-27' }), /^duplicate: .*id t214, inbox.*move_task/)
+  rejectedBy(add(fresh(), { title: 'Fix the bike light', date: '2026-11-23' }), /^duplicate: .*id t223/)
+  rejectedBy(add(fresh(), { title: 'Read chapter 5 for the course', size: 'normal', sphere: 'study', date: '2026-11-25' }), /^duplicate: .*id t215/)
+  // another session of a repeating habit is not a copy; a different thing with a shared word is not either
+  assert.equal(add(fresh(), { title: 'Gym', sphere: 'health', size: 'normal', date: '2026-11-25' }).status, 'waiting_for_confirmation')
+  assert.equal(add(fresh(), { title: 'Buy a bike pump', date: '2026-11-25' }).status, 'waiting_for_confirmation')
+})
+
+test('a windowed task without a time cannot go where another rule closes its window (live run 28.11)', () => {
+  // gym only 18–20, and on Tuesday/Thursday nothing after 18:00 — the model put the gym on Thursday
+  rejectedBy(add(fresh(), { title: 'Gym', sphere: 'health', size: 'normal', date: '2026-11-26' }), /^Gym only in the evening.*Thursday.*closes that window/)
+  assert.equal(add(fresh(), { title: 'Gym', sphere: 'health', size: 'normal', date: '2026-11-27' }).status, 'waiting_for_confirmation')
+})

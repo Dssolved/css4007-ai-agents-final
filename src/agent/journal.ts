@@ -121,7 +121,7 @@ const touches = (c: Change) => (c.kind === 'add_task' ? c.task.id : c.kind === '
  * The plan as it would be with everything pending plus `change`, on a copy — what the plan check
  * looks at. `touched`: tasks the agent changed in this conversation (applied, waiting, this one)
  */
-export function preview(s: Session, change: Change): { dataset: Dataset; touched: Set<string> } {
+export function preview(s: Session, change: Change): { dataset: Dataset; touched: Set<string>; added: Set<string> } {
   const copy = structuredClone(s.dataset)
   for (const p of s.pending)
     try {
@@ -131,7 +131,8 @@ export function preview(s: Session, change: Change): { dataset: Dataset; touched
     }
   applyChange(copy, change)
   const touched = new Set([...s.journal.filter((e) => !e.undone).map((e) => e.change), ...s.pending.map((p) => p.change), change].map(touches))
-  return { dataset: copy, touched }
+  const added = new Set([...s.journal.filter((e) => !e.undone).map((e) => e.change), ...s.pending.map((p) => p.change), change].flatMap((c) => (c.kind === 'add_task' ? [c.task.id] : [])))
+  return { dataset: copy, touched, added }
 }
 
 /** Apply now and write to the journal */
